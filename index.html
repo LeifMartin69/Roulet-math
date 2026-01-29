@@ -10,13 +10,19 @@
     <main class="app">
       <header>
         <p class="eyebrow">Gambling by Leif &amp; Julian</p>
-        <h1>Spin the Wheel</h1>
+        <h1>Lucky Lounge</h1>
         <p class="subtitle">
-          Place a simple bet on a number or a color and try your luck.
+          Pick a game to play. Spin the roulette wheel or roll custom dice.
         </p>
+        <nav class="menu">
+          <button class="menu-button active" type="button" data-view="roulette">
+            Roulette
+          </button>
+          <button class="menu-button" type="button" data-view="dice">Dice</button>
+        </nav>
       </header>
 
-      <section class="table">
+      <section class="table game-panel" data-view="roulette">
         <div class="wheel">
           <div class="wheel-inner">
             <div class="result-label">Last spin</div>
@@ -41,7 +47,7 @@
         </div>
       </section>
 
-      <section class="bet-panel">
+      <section class="bet-panel game-panel" data-view="roulette">
         <h2>Place your bet</h2>
         <form id="bet-form">
           <label class="field">
@@ -127,6 +133,30 @@
         </form>
 
         <div id="message" class="message">Select a bet and spin.</div>
+      </section>
+
+      <section class="dice-panel game-panel hidden" data-view="dice">
+        <h2>Dice table</h2>
+        <div class="dice-controls">
+          <label class="field">
+            Dice count
+            <select id="dice-count" name="dice-count">
+              <option value="1">1 die</option>
+              <option value="2">2 dice</option>
+              <option value="3">3 dice</option>
+              <option value="4">4 dice</option>
+              <option value="5">5 dice</option>
+            </select>
+          </label>
+          <button id="roll-dice" type="button" class="spin-button">Roll dice</button>
+        </div>
+        <div class="dice-display" id="dice-display">
+          <p class="dice-placeholder">Roll to see your dice.</p>
+        </div>
+        <div class="dice-probability">
+          <span class="probability-label">Exact combo probability</span>
+          <span id="dice-probability-value" class="probability-value">—</span>
+        </div>
       </section>
     </main>
 
