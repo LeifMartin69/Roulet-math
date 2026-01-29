@@ -48,6 +48,8 @@ const betDozenSelect = document.getElementById("bet-dozen");
 const betColumnSelect = document.getElementById("bet-column");
 const betAmountInput = document.getElementById("bet-amount");
 const form = document.getElementById("bet-form");
+const menuButtons = document.querySelectorAll(".menu-button");
+const gamePanels = document.querySelectorAll(".game-panel");
 const resultNumber = document.getElementById("result-number");
 const resultColor = document.getElementById("result-color");
 const message = document.getElementById("message");
@@ -57,6 +59,10 @@ const lossesEl = document.getElementById("losses");
 const probabilityValue = document.getElementById("probability-value");
 const probabilityNote = document.getElementById("probability-note");
 const togiOverlay = document.getElementById("togi-overlay");
+const diceCountSelect = document.getElementById("dice-count");
+const rollDiceButton = document.getElementById("roll-dice");
+const diceDisplay = document.getElementById("dice-display");
+const diceProbabilityValue = document.getElementById("dice-probability-value");
 
 let balance = 1000;
 let wins = 0;
@@ -66,6 +72,11 @@ const MAX_HISTORY = 20;
 
 const formatMoney = (value) => `$${value.toLocaleString()}`;
 const parseWager = (value) => Number(value.replace(/[^0-9.]/g, ""));
+const getExactDiceProbability = (diceCount) => {
+  const totalOutcomes = 6 ** diceCount;
+  const percent = (1 / totalOutcomes) * 100;
+  return { ratio: `1 / ${totalOutcomes}`, percent };
+};
 
 const updateStats = () => {
   balanceEl.textContent = formatMoney(balance);
@@ -221,6 +232,34 @@ const updateProbability = (betType) => {
   probabilityNote.textContent = noteText;
 };
 
+const setActiveView = (view) => {
+  menuButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.view === view);
+  });
+  gamePanels.forEach((panel) => {
+    panel.classList.toggle("hidden", panel.dataset.view !== view);
+  });
+};
+
+const renderDice = (values) => {
+  diceDisplay.innerHTML = "";
+  values.forEach((value) => {
+    const die = document.createElement("div");
+    die.className = "dice";
+    die.textContent = value;
+    diceDisplay.appendChild(die);
+  });
+};
+
+const updateDiceProbability = (diceCount) => {
+  const { ratio, percent } = getExactDiceProbability(diceCount);
+  diceProbabilityValue.textContent = `${ratio} (${percent.toFixed(4)}%)`;
+};
+
+menuButtons.forEach((button) => {
+  button.addEventListener("click", () => setActiveView(button.dataset.view));
+});
+
 betTypeSelect.addEventListener("change", toggleFields);
 betColorSelect.addEventListener("change", () => updateProbability("color"));
 betOddEvenSelect.addEventListener("change", () => updateProbability("odd-even"));
@@ -228,6 +267,17 @@ betHighLowSelect.addEventListener("change", () => updateProbability("high-low"))
 betDozenSelect.addEventListener("change", () => updateProbability("dozen"));
 betColumnSelect.addEventListener("change", () => updateProbability("column"));
 betNumberInput.addEventListener("input", () => updateProbability("number"));
+
+diceCountSelect.addEventListener("change", () => {
+  updateDiceProbability(Number(diceCountSelect.value));
+});
+
+rollDiceButton.addEventListener("click", () => {
+  const diceCount = Number(diceCountSelect.value);
+  const values = Array.from({ length: diceCount }, () => Math.floor(Math.random() * 6) + 1);
+  renderDice(values);
+  updateDiceProbability(diceCount);
+});
 
 togiOverlay.addEventListener("animationend", () => {
   togiOverlay.classList.remove("show");
@@ -309,3 +359,4 @@ form.addEventListener("submit", (event) => {
 
 toggleFields();
 updateStats();
+updateDiceProbability(Number(diceCountSelect.value));
