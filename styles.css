@@ -236,6 +236,11 @@ select {
   font-weight: 700;
 }
 
+.probability-note {
+  font-size: 11px;
+  color: rgba(154, 167, 184, 0.8);
+}
+
 @media (max-width: 600px) {
   body {
     padding: 32px 16px;

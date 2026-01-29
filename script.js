@@ -55,10 +55,13 @@ const balanceEl = document.getElementById("balance");
 const winsEl = document.getElementById("wins");
 const lossesEl = document.getElementById("losses");
 const probabilityValue = document.getElementById("probability-value");
+const probabilityNote = document.getElementById("probability-note");
 
 let balance = 1000;
 let wins = 0;
 let losses = 0;
+const spinHistory = [];
+const MAX_HISTORY = 20;
 
 const formatMoney = (value) => `$${value.toLocaleString()}`;
 
@@ -147,20 +150,76 @@ const calculatePayout = (betType, betValue, amount, spin) => {
   }
 };
 
-const updateProbability = (betType) => {
-  let probability = null;
+const getBaseProbability = (betType) => {
   if (betType === "number") {
-    probability = "1 / 37 (2.7%)";
-  } else if (betType === "color") {
+    return { ratio: "1 / 37", percent: 2.7 };
+  }
+  if (betType === "color") {
     const color = betColorSelect.value;
-    probability = color === "green" ? "1 / 37 (2.7%)" : "18 / 37 (48.6%)";
-  } else if (betType === "odd-even" || betType === "high-low") {
-    probability = "18 / 37 (48.6%)";
-  } else if (betType === "dozen" || betType === "column") {
-    probability = "12 / 37 (32.4%)";
+    return color === "green"
+      ? { ratio: "1 / 37", percent: 2.7 }
+      : { ratio: "18 / 37", percent: 48.6 };
+  }
+  if (betType === "odd-even" || betType === "high-low") {
+    return { ratio: "18 / 37", percent: 48.6 };
+  }
+  if (betType === "dozen" || betType === "column") {
+    return { ratio: "12 / 37", percent: 32.4 };
+  }
+  return null;
+};
+
+const didWinSpin = (betType, betValue, spin) => {
+  switch (betType) {
+    case "number":
+      return Number(betValue) === spin.number;
+    case "color":
+      return betValue === spin.color;
+    case "odd-even":
+      return spin.number !== 0 && betValue === (spin.number % 2 === 0 ? "even" : "odd");
+    case "high-low":
+      return spin.number !== 0 && betValue === (spin.number <= 18 ? "low" : "high");
+    case "dozen":
+      return betValue === getDozen(spin.number);
+    case "column":
+      return betValue === getColumn(spin.number);
+    default:
+      return false;
+  }
+};
+
+const updateProbability = (betType) => {
+  const base = getBaseProbability(betType);
+  let probabilityText = base ? `${base.ratio} (${base.percent.toFixed(1)}%)` : "—";
+  let noteText = `Based on last ${spinHistory.length} spins`;
+
+  if (spinHistory.length > 0) {
+    let betValue;
+    if (betType === "number") {
+      betValue = betNumberInput.value;
+    } else if (betType === "color") {
+      betValue = betColorSelect.value;
+    } else if (betType === "odd-even") {
+      betValue = betOddEvenSelect.value;
+    } else if (betType === "high-low") {
+      betValue = betHighLowSelect.value;
+    } else if (betType === "dozen") {
+      betValue = betDozenSelect.value;
+    } else if (betType === "column") {
+      betValue = betColumnSelect.value;
+    }
+
+    if (betValue !== undefined && betValue !== "") {
+      const winsInHistory = spinHistory.filter((spin) => didWinSpin(betType, betValue, spin))
+        .length;
+      const historyPercent = (winsInHistory / spinHistory.length) * 100;
+      probabilityText = `${historyPercent.toFixed(1)}% (history)`;
+      noteText = `Based on last ${spinHistory.length} spins`;
+    }
   }
 
-  probabilityValue.textContent = probability ?? "—";
+  probabilityValue.textContent = probabilityText;
+  probabilityNote.textContent = noteText;
 };
 
 betTypeSelect.addEventListener("change", toggleFields);
@@ -169,6 +228,7 @@ betOddEvenSelect.addEventListener("change", () => updateProbability("odd-even"))
 betHighLowSelect.addEventListener("change", () => updateProbability("high-low"));
 betDozenSelect.addEventListener("change", () => updateProbability("dozen"));
 betColumnSelect.addEventListener("change", () => updateProbability("column"));
+betNumberInput.addEventListener("input", () => updateProbability("number"));
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
@@ -215,6 +275,10 @@ form.addEventListener("submit", (event) => {
 
   const spin = spinWheel();
   updateResultDisplay(spin);
+  spinHistory.unshift(spin);
+  if (spinHistory.length > MAX_HISTORY) {
+    spinHistory.pop();
+  }
 
   const payout = calculatePayout(betType, betValue, betAmount, spin);
   balance += payout;
@@ -228,6 +292,7 @@ form.addEventListener("submit", (event) => {
   }
 
   updateStats();
+  updateProbability(betType);
 });
 
 toggleFields();
