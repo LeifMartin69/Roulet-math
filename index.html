@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roulette Spin</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header>
+        <p class="eyebrow">Roulette</p>
+        <h1>Spin the Wheel</h1>
+        <p class="subtitle">
+          Place a simple bet on a number or a color and try your luck.
+        </p>
+      </header>
+
+      <section class="table">
+        <div class="wheel">
+          <div class="wheel-inner">
+            <div class="result-label">Last spin</div>
+            <div id="result-number" class="result-number">—</div>
+            <div id="result-color" class="result-color">Waiting</div>
+          </div>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Balance</span>
+            <span id="balance" class="stat-value">$1,000</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Wins</span>
+            <span id="wins" class="stat-value">0</span>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Losses</span>
+            <span id="losses" class="stat-value">0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="bet-panel">
+        <h2>Place your bet</h2>
+        <form id="bet-form">
+          <label class="field">
+            Bet type
+            <select id="bet-type" name="bet-type">
+              <option value="number">Number (0-36)</option>
+              <option value="color">Color</option>
+            </select>
+          </label>
+
+          <label class="field" id="number-field">
+            Number
+            <input
+              id="bet-number"
+              name="bet-number"
+              type="number"
+              min="0"
+              max="36"
+              placeholder="e.g. 7"
+            />
+          </label>
+
+          <label class="field hidden" id="color-field">
+            Color
+            <select id="bet-color" name="bet-color">
+              <option value="red">Red</option>
+              <option value="black">Black</option>
+              <option value="green">Green</option>
+            </select>
+          </label>
+
+          <label class="field">
+            Wager
+            <input
+              id="bet-amount"
+              name="bet-amount"
+              type="number"
+              min="10"
+              step="10"
+              value="50"
+            />
+          </label>
+
+          <button type="submit" class="spin-button">Spin</button>
+        </form>
+
+        <div id="message" class="message">Select a bet and spin.</div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
