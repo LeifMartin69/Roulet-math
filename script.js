@@ -39,10 +39,13 @@ const rouletteWheel = [
 ];
 
 const betTypeSelect = document.getElementById("bet-type");
-const numberField = document.getElementById("number-field");
-const colorField = document.getElementById("color-field");
+const betOptionFields = document.querySelectorAll(".bet-option");
 const betNumberInput = document.getElementById("bet-number");
 const betColorSelect = document.getElementById("bet-color");
+const betOddEvenSelect = document.getElementById("bet-odd-even");
+const betHighLowSelect = document.getElementById("bet-high-low");
+const betDozenSelect = document.getElementById("bet-dozen");
+const betColumnSelect = document.getElementById("bet-column");
 const betAmountInput = document.getElementById("bet-amount");
 const form = document.getElementById("bet-form");
 const resultNumber = document.getElementById("result-number");
@@ -51,12 +54,18 @@ const message = document.getElementById("message");
 const balanceEl = document.getElementById("balance");
 const winsEl = document.getElementById("wins");
 const lossesEl = document.getElementById("losses");
+const probabilityValue = document.getElementById("probability-value");
+const probabilityNote = document.getElementById("probability-note");
+const togiOverlay = document.getElementById("togi-overlay");
 
 let balance = 1000;
 let wins = 0;
 let losses = 0;
+const spinHistory = [];
+const MAX_HISTORY = 20;
 
 const formatMoney = (value) => `$${value.toLocaleString()}`;
+const parseWager = (value) => Number(value.replace(/[^0-9.]/g, ""));
 
 const updateStats = () => {
   balanceEl.textContent = formatMoney(balance);
@@ -65,9 +74,11 @@ const updateStats = () => {
 };
 
 const toggleFields = () => {
-  const isNumber = betTypeSelect.value === "number";
-  numberField.classList.toggle("hidden", !isNumber);
-  colorField.classList.toggle("hidden", isNumber);
+  const selected = betTypeSelect.value;
+  betOptionFields.forEach((field) => {
+    field.classList.toggle("hidden", field.dataset.bet !== selected);
+  });
+  updateProbability(selected);
 };
 
 const spinWheel = () => {
@@ -81,34 +92,191 @@ const updateResultDisplay = (spin) => {
   resultColor.className = `result-color ${spin.color}`;
 };
 
+const getColumn = (number) => {
+  if (number === 0) {
+    return null;
+  }
+  const remainder = number % 3;
+  if (remainder === 1) {
+    return "1st";
+  }
+  if (remainder === 2) {
+    return "2nd";
+  }
+  return "3rd";
+};
+
+const getDozen = (number) => {
+  if (number >= 1 && number <= 12) {
+    return "1-12";
+  }
+  if (number >= 13 && number <= 24) {
+    return "13-24";
+  }
+  if (number >= 25 && number <= 36) {
+    return "25-36";
+  }
+  return null;
+};
+
 const calculatePayout = (betType, betValue, amount, spin) => {
+  switch (betType) {
+    case "number":
+      return Number(betValue) === spin.number ? amount * 35 : -amount;
+    case "color":
+      return betValue === spin.color ? amount : -amount;
+    case "odd-even": {
+      if (spin.number === 0) {
+        return -amount;
+      }
+      const parity = spin.number % 2 === 0 ? "even" : "odd";
+      return betValue === parity ? amount : -amount;
+    }
+    case "high-low": {
+      if (spin.number === 0) {
+        return -amount;
+      }
+      const range = spin.number <= 18 ? "low" : "high";
+      return betValue === range ? amount : -amount;
+    }
+    case "dozen": {
+      const dozen = getDozen(spin.number);
+      return betValue === dozen ? amount * 2 : -amount;
+    }
+    case "column": {
+      const column = getColumn(spin.number);
+      return betValue === column ? amount * 2 : -amount;
+    }
+    default:
+      return 0;
+  }
+};
+
+const getBaseProbability = (betType) => {
   if (betType === "number") {
-    return Number(betValue) === spin.number ? amount * 35 : -amount;
+    return { ratio: "1 / 37", percent: 2.7 };
   }
-
   if (betType === "color") {
-    return betValue === spin.color ? amount : -amount;
+    return { ratio: "18 / 37", percent: 48.6 };
+  }
+  if (betType === "odd-even" || betType === "high-low") {
+    return { ratio: "18 / 37", percent: 48.6 };
+  }
+  if (betType === "dozen" || betType === "column") {
+    return { ratio: "12 / 37", percent: 32.4 };
+  }
+  return null;
+};
+
+const didWinSpin = (betType, betValue, spin) => {
+  switch (betType) {
+    case "number":
+      return Number(betValue) === spin.number;
+    case "color":
+      return betValue === spin.color;
+    case "odd-even":
+      return spin.number !== 0 && betValue === (spin.number % 2 === 0 ? "even" : "odd");
+    case "high-low":
+      return spin.number !== 0 && betValue === (spin.number <= 18 ? "low" : "high");
+    case "dozen":
+      return betValue === getDozen(spin.number);
+    case "column":
+      return betValue === getColumn(spin.number);
+    default:
+      return false;
+  }
+};
+
+const updateProbability = (betType) => {
+  const base = getBaseProbability(betType);
+  let probabilityText = base ? `${base.ratio} (${base.percent.toFixed(1)}%)` : "—";
+  let noteText = `Based on last ${spinHistory.length} spins`;
+
+  if (spinHistory.length > 0) {
+    let betValue;
+    if (betType === "number") {
+      betValue = betNumberInput.value;
+    } else if (betType === "color") {
+      betValue = betColorSelect.value;
+    } else if (betType === "odd-even") {
+      betValue = betOddEvenSelect.value;
+    } else if (betType === "high-low") {
+      betValue = betHighLowSelect.value;
+    } else if (betType === "dozen") {
+      betValue = betDozenSelect.value;
+    } else if (betType === "column") {
+      betValue = betColumnSelect.value;
+    }
+
+    if (betValue !== undefined && betValue !== "") {
+      const winsInHistory = spinHistory.filter((spin) => didWinSpin(betType, betValue, spin))
+        .length;
+      const historyPercent = (winsInHistory / spinHistory.length) * 100;
+      probabilityText = `${historyPercent.toFixed(1)}% (history)`;
+      noteText = `Based on last ${spinHistory.length} spins`;
+    }
   }
 
-  return 0;
+  probabilityValue.textContent = probabilityText;
+  probabilityNote.textContent = noteText;
 };
 
 betTypeSelect.addEventListener("change", toggleFields);
+betColorSelect.addEventListener("change", () => updateProbability("color"));
+betOddEvenSelect.addEventListener("change", () => updateProbability("odd-even"));
+betHighLowSelect.addEventListener("change", () => updateProbability("high-low"));
+betDozenSelect.addEventListener("change", () => updateProbability("dozen"));
+betColumnSelect.addEventListener("change", () => updateProbability("column"));
+betNumberInput.addEventListener("input", () => updateProbability("number"));
+
+togiOverlay.addEventListener("animationend", () => {
+  togiOverlay.classList.remove("show");
+});
 
 form.addEventListener("submit", (event) => {
   event.preventDefault();
 
   const betType = betTypeSelect.value;
-  const betAmount = Number(betAmountInput.value);
-  const betValue = betType === "number" ? betNumberInput.value : betColorSelect.value;
+  const wagerRaw = betAmountInput.value.trim();
+  const betAmount = parseWager(wagerRaw);
+  let betValue;
 
-  if (!betValue && betType === "number") {
-    message.textContent = "Pick a number between 0 and 36.";
+  if (wagerRaw.toLowerCase() === "togi") {
+    togiOverlay.classList.remove("show");
+    void togiOverlay.offsetWidth;
+    togiOverlay.classList.add("show");
+    message.textContent = "Togi moment! Try a real wager to spin.";
     return;
   }
 
-  if (betAmount <= 0 || Number.isNaN(betAmount)) {
-    message.textContent = "Enter a valid wager.";
+  if (betType === "number") {
+    betValue = betNumberInput.value;
+  } else if (betType === "color") {
+    betValue = betColorSelect.value;
+  } else if (betType === "odd-even") {
+    betValue = betOddEvenSelect.value;
+  } else if (betType === "high-low") {
+    betValue = betHighLowSelect.value;
+  } else if (betType === "dozen") {
+    betValue = betDozenSelect.value;
+  } else if (betType === "column") {
+    betValue = betColumnSelect.value;
+  }
+
+  if (betType === "number") {
+    const numberValue = Number(betValue);
+    if (Number.isNaN(numberValue) || betValue === "") {
+      message.textContent = "Pick a number between 0 and 36.";
+      return;
+    }
+    if (numberValue < 0 || numberValue > 36) {
+      message.textContent = "Your number must be between 0 and 36.";
+      return;
+    }
+  }
+
+  if (!wagerRaw || betAmount <= 0 || Number.isNaN(betAmount)) {
+    message.textContent = "Enter a valid wager amount.";
     return;
   }
 
@@ -119,6 +287,10 @@ form.addEventListener("submit", (event) => {
 
   const spin = spinWheel();
   updateResultDisplay(spin);
+  spinHistory.unshift(spin);
+  if (spinHistory.length > MAX_HISTORY) {
+    spinHistory.pop();
+  }
 
   const payout = calculatePayout(betType, betValue, betAmount, spin);
   balance += payout;
@@ -132,6 +304,7 @@ form.addEventListener("submit", (event) => {
   }
 
   updateStats();
+  updateProbability(betType);
 });
 
 toggleFields();
