@@ -63,6 +63,8 @@ const diceCountSelect = document.getElementById("dice-count");
 const rollDiceButton = document.getElementById("roll-dice");
 const diceDisplay = document.getElementById("dice-display");
 const diceProbabilityValue = document.getElementById("dice-probability-value");
+const diceTotalValue = document.getElementById("dice-total-value");
+const diceTotalProbability = document.getElementById("dice-total-probability");
 
 let balance = 1000;
 let wins = 0;
@@ -76,6 +78,30 @@ const getExactDiceProbability = (diceCount) => {
   const totalOutcomes = 6 ** diceCount;
   const percent = (1 / totalOutcomes) * 100;
   return { ratio: `1 / ${totalOutcomes}`, percent };
+};
+const sumWaysCache = new Map();
+const getSumWays = (diceCount, targetSum) => {
+  const cacheKey = `${diceCount}:${targetSum}`;
+  if (sumWaysCache.has(cacheKey)) {
+    return sumWaysCache.get(cacheKey);
+  }
+  if (diceCount === 1) {
+    const ways = targetSum >= 1 && targetSum <= 6 ? 1 : 0;
+    sumWaysCache.set(cacheKey, ways);
+    return ways;
+  }
+  let ways = 0;
+  for (let face = 1; face <= 6; face += 1) {
+    ways += getSumWays(diceCount - 1, targetSum - face);
+  }
+  sumWaysCache.set(cacheKey, ways);
+  return ways;
+};
+const getSumProbability = (diceCount, total) => {
+  const totalOutcomes = 6 ** diceCount;
+  const ways = getSumWays(diceCount, total);
+  const percent = (ways / totalOutcomes) * 100;
+  return { ways, totalOutcomes, percent };
 };
 
 const updateStats = () => {
@@ -255,6 +281,17 @@ const updateDiceProbability = (diceCount) => {
   const { ratio, percent } = getExactDiceProbability(diceCount);
   diceProbabilityValue.textContent = `${ratio} (${percent.toFixed(4)}%)`;
 };
+const updateDiceTotals = (diceCount, values) => {
+  if (!values || values.length === 0) {
+    diceTotalValue.textContent = "—";
+    diceTotalProbability.textContent = "—";
+    return;
+  }
+  const total = values.reduce((sum, value) => sum + value, 0);
+  const { ways, totalOutcomes, percent } = getSumProbability(diceCount, total);
+  diceTotalValue.textContent = total;
+  diceTotalProbability.textContent = `${ways} / ${totalOutcomes} (${percent.toFixed(3)}%)`;
+};
 
 menuButtons.forEach((button) => {
   button.addEventListener("click", () => setActiveView(button.dataset.view));
@@ -269,7 +306,9 @@ betColumnSelect.addEventListener("change", () => updateProbability("column"));
 betNumberInput.addEventListener("input", () => updateProbability("number"));
 
 diceCountSelect.addEventListener("change", () => {
-  updateDiceProbability(Number(diceCountSelect.value));
+  const diceCount = Number(diceCountSelect.value);
+  updateDiceProbability(diceCount);
+  updateDiceTotals(diceCount, []);
 });
 
 rollDiceButton.addEventListener("click", () => {
@@ -277,6 +316,7 @@ rollDiceButton.addEventListener("click", () => {
   const values = Array.from({ length: diceCount }, () => Math.floor(Math.random() * 6) + 1);
   renderDice(values);
   updateDiceProbability(diceCount);
+  updateDiceTotals(diceCount, values);
 });
 
 togiOverlay.addEventListener("animationend", () => {
@@ -360,3 +400,4 @@ form.addEventListener("submit", (event) => {
 toggleFields();
 updateStats();
 updateDiceProbability(Number(diceCountSelect.value));
+updateDiceTotals(Number(diceCountSelect.value), []);
