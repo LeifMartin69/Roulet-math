@@ -9,7 +9,7 @@
   <body>
     <main class="app">
       <header>
-        <p class="eyebrow">Roulette</p>
+        <p class="eyebrow">Gambling by Leif &amp; Julian</p>
         <h1>Spin the Wheel</h1>
         <p class="subtitle">
           Place a simple bet on a number or a color and try your luck.
@@ -49,10 +49,14 @@
             <select id="bet-type" name="bet-type">
               <option value="number">Number (0-36)</option>
               <option value="color">Color</option>
+              <option value="odd-even">Odd / Even</option>
+              <option value="high-low">High / Low</option>
+              <option value="dozen">Dozen</option>
+              <option value="column">Column</option>
             </select>
           </label>
 
-          <label class="field" id="number-field">
+          <label class="field bet-option" id="number-field" data-bet="number">
             Number
             <input
               id="bet-number"
@@ -64,12 +68,45 @@
             />
           </label>
 
-          <label class="field hidden" id="color-field">
+          <label class="field bet-option hidden" id="color-field" data-bet="color">
             Color
             <select id="bet-color" name="bet-color">
               <option value="red">Red</option>
               <option value="black">Black</option>
-              <option value="green">Green</option>
+            </select>
+          </label>
+
+          <label class="field bet-option hidden" id="odd-even-field" data-bet="odd-even">
+            Odd or even
+            <select id="bet-odd-even" name="bet-odd-even">
+              <option value="odd">Odd</option>
+              <option value="even">Even</option>
+            </select>
+          </label>
+
+          <label class="field bet-option hidden" id="high-low-field" data-bet="high-low">
+            High or low
+            <select id="bet-high-low" name="bet-high-low">
+              <option value="low">1-18</option>
+              <option value="high">19-36</option>
+            </select>
+          </label>
+
+          <label class="field bet-option hidden" id="dozen-field" data-bet="dozen">
+            Dozen
+            <select id="bet-dozen" name="bet-dozen">
+              <option value="1-12">1-12</option>
+              <option value="13-24">13-24</option>
+              <option value="25-36">25-36</option>
+            </select>
+          </label>
+
+          <label class="field bet-option hidden" id="column-field" data-bet="column">
+            Column
+            <select id="bet-column" name="bet-column">
+              <option value="1st">1st column</option>
+              <option value="2nd">2nd column</option>
+              <option value="3rd">3rd column</option>
             </select>
           </label>
 
@@ -78,9 +115,10 @@
             <input
               id="bet-amount"
               name="bet-amount"
-              type="number"
-              min="10"
-              step="10"
+              type="text"
+              inputmode="numeric"
+              autocomplete="off"
+              aria-label="Wager amount"
               value="50"
             />
           </label>
@@ -91,6 +129,16 @@
         <div id="message" class="message">Select a bet and spin.</div>
       </section>
     </main>
+
+    <div class="probability-indicator">
+      <span class="probability-label">Probability to win</span>
+      <span id="probability-value" class="probability-value">—</span>
+      <span id="probability-note" class="probability-note">Based on last 0 spins</span>
+    </div>
+
+    <div id="togi-overlay" class="togi-overlay" aria-hidden="true">
+      <img src="assets/togi.jpg" alt="Togi celebration" />
+    </div>
 
     <script src="script.js"></script>
   </body>
